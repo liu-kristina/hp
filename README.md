@@ -92,6 +92,6 @@ Displays real-time system usage, visualizing how workloads are distributed
 
 About us:
 
-Our LinkedIn and Github profiles are shared on this page! 
+Our LinkedIn and Github profiles are shared on this page! This project was contributed to by Jan Roesnick, Kristina Liang, Marisa Davis, and Natalia Neamtu
 
 
