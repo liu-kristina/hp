@@ -1,0 +1,58 @@
+[project]
+name = "hp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.9"
+dependencies = [
+    "dash>=3.0.1",
+    "dash-bootstrap-components>=2.0.0",
+    "dash-bootstrap-templates>=2.1.0",
+    "dash-daq>=0.6.0",
+    "faiss-cpu>=1.10.0",
+    "gputil>=1.4.0",
+    "langchain>=0.3.21",
+    "langchain-community>=0.3.20",
+    "langchain-huggingface>=0.1.2",
+    "langchain-ollama>=0.3.0",
+    "langgraph>=0.3.21",
+    "nltk>=3.9.1",
+    "nncf>=2.15.0",
+    "onnx>=1.17.0",
+    "onnxruntime>=1.21.0",
+    "opencv-python>=4.11.0.86",
+    "optimum>=1.24.0",
+    "optimum-intel>=1.15.0",
+    "pandas>=2.2.3",
+    "psutil>=7.0.0",
+    "pymupdf>=1.25.4",
+    "pymupdf4llm>=0.0.18",
+    "pypdf2>=3.0.1",
+    "python-dotenv>=1.1.0",
+    "tiktoken>=0.9.0",
+    "tqdm>=4.67.1",
+    "transformers>=4.50",
+    "ultralytics>=8.3.97",
+    "openvino",
+    "torch",
+    'torchaudio',
+    'torchvision',
+    "flask-caching>=2.3.1",
+    "onnxruntime-gpu>=1.21.0",
+]
+
+[tool.uv.sources]
+openvino = { index = "openvino" }
+torch = { index = 'torch'}
+torchvision  = { index = 'torch'}
+torchaudio = { index = 'torch'}
+
+[[tool.uv.index]]
+name = "openvino"
+url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+explicit = true
+
+[[tool.uv.index]]
+name = 'torch'
+url = 'https://download.pytorch.org/whl/cu126'
+explicit = true

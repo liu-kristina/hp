@@ -1,0 +1,11 @@
+@font-face {
+    font-family: 'HPsimplified_Regular';
+    src: url('/assets/HPSimplified_W_Rg.woff2') format('woff2'),
+         url('/assets/MyFont.HPSimplified_W_Rg') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'HPsimplified_Regular'
+}

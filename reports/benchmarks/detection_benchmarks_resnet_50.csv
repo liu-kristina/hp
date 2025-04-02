@@ -1,0 +1,3 @@
+,CPU,NPU,iGPU
+latency (ms),17.71,3.41,2.51
+throughput (ms),62.32,12.39,9.7
