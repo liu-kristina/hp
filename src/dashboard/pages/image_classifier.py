@@ -1,8 +1,8 @@
 import dash 
+import logging
 from dash import dcc, html, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 import time
-import openvino as ov
 from src.utils.image_classification.helper_functions import (
     classify_image, 
     run_benchmark_app, 
@@ -13,10 +13,16 @@ from src.utils.util_functions import get_devices
 
 # from src.dashboard.components.chatbot_button import get_popover_chatbot
 from src.dashboard.components.title_section import create_title_section
+from src.vis.benchmark_plots_resnet import create_figure, get_benchmarkings
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO)
+
 
 # -----------------------
 # Initialize the page
-dash.register_page(__name__, title="Image Classification", name="Image Classification", path='/image-classification')
+dash.register_page(__name__, title="Image Classification", name="Image Classification", path='/image-classification', order=2)
 
 
 title_section = create_title_section("Image Classification", "Benchmarking using OpenVINO")
@@ -54,15 +60,19 @@ device_selection = dbc.Card(
     [
         dbc.CardHeader("Select device for task."),
         dbc.CardBody(
-            dcc.RadioItems([f" {x} " for x in get_devices()], " CPU ", id='device-selection-class'),
+            dbc.RadioItems([f" {x} " for x in get_devices()], " CPU ", id='device-selection-class', inline=True),
             ),
     ],
-    className="w-50",
-    outline=False,
+    className="w-75",
+    style={
+        "background-color": "#1b2631",
+    },
+    outline=True,
 )
 
 tool_section = html.Div([
-    dbc.Button("Run", color="primary", id="classify-button", n_clicks=0),
+    dbc.Button("Run", color="primary", id="classify-button", n_clicks=0,
+               style={"backgroundColor": "#004ad8", "borderColor": "#004ad8", "color": "white"}),
     html.Div(id="classify-button"),
     # html.Div(id="elapsed-time-classify")
 ])
@@ -71,12 +81,44 @@ result_section = html.Div(id="elapsed-time-classify")
 
 benchmark_section = html.Div([
     dcc.Markdown("""
-                TO DO: EXPLAIN BENCHMARKS
+                 To truly test the capability, a processing device can offer, we provide you with a small
+                 benchmark test. This benchmark is using a dataset with 128 images and calculates the average
+                 time it needs to compute one image, as well as how many frames per second can be
+                 processed with the given configuration. 
+                 Press the benchmark button and test it out!
                  """),
+    # dbc.Button("Benchmark", id="benchmark-button-classify", n_clicks=0, class_name="btn btn-secondary"),
+    # html.Div(id="benchmark-result-classify"),
+])
+
+benchmark_button = html.Div([
     dbc.Button("Benchmark", id="benchmark-button-classify", n_clicks=0, class_name="btn btn-secondary"),
     html.Div(id="benchmark-result-classify"),
-
 ])
+
+##### Static plot comparing execution times on 3 types:
+
+
+df_benchmark = get_benchmarkings()
+# title = "Benchmark results" 
+# suptitle = 'Latency Time for Classification Across Different Devices using ResNet-50'
+
+# fig_latency = create_figure(df_benchmark, 'latency (ms)', title, suptitle, 
+#                             "Device", "Time", 'ms', purpose="app")
+
+title = "Inference time" 
+suptitle = 'Less is better'
+fig_inference = create_figure(df_benchmark, var='inference_time', title=title, 
+                              suptitle=suptitle, x_label="Device", y_label="Time", 
+                              ticksuffix='ms', purpose="app")
+
+title = "Frames per second" 
+suptitle = 'More is better'
+fig_throughput = create_figure(df_benchmark, 'fps', title, suptitle, "Device", "Frames per Second", purpose="app")
+
+fig_benchmark_fps = dcc.Graph(id='benchmark-fps', figure=fig_throughput, 
+                              config={'staticPlot': True})
+fig_benchmark_inference = dcc.Graph(id='benchmark-latency', figure=fig_inference, config={'staticPlot': True})
 
 
 ############## FADE BUTTON
@@ -106,41 +148,41 @@ fade_content = html.Div([
 
 fadeIC = html.Div(
     [
-        dbc.Button("More info", id="fade-buttonIC", className="mb-3", n_clicks=0,  style={"backgroundColor": "#004ad8", "borderColor": "#004ad8", "color": "white"}),
-        dbc.Fade(
+        dbc.Button("More info", id="fade-button-ic", className="mb-3", n_clicks=0,  
+                   style={"backgroundColor": "#004ad8", "borderColor": "#004ad8", "color": "white"}),
+        dbc.Collapse(
             dbc.Card(
                 dbc.CardBody(
                     fade_content
                 )
             ),
-            id="fadeIC-alt",
-            is_in=False,
-            appear=False,
+            id="fade-ic",
+            is_open=False,
         ),
     ]
 )
 
 ###### CALBACKS #######
+##### Callbacks 
 @callback(
-    Output("fadeIC-alt", "is_in"),
-    [Input("fade-buttonIC", "n_clicks")],
-    [State("fadeIC-alt", "is_in")],
+    Output("fade-ic", "is_open"),
+    [Input("fade-button-ic", "n_clicks")],
+    [State("fade-ic", "is_open")],
 )
-def toggle_fade(n, is_in):
-    if not n:
-        # Button has never been clicked
-        return False
-    return not is_in
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
-@callback(Output("global-storeIC", "data"),
+
+@callback(Output("global-store", "data", allow_duplicate=True),
           Input("device-selection-class", "value"),
-          State("global-storeIC", "data"))
+          State("global-store", "data"),
+          prevent_initial_call=True)
 def select_device(value, data):
-    #logging.info("Selected %s", value)
+    logging.info("Selected %s", value)
     data["device"] = value.strip()
     return data
-
-
 
 # Callback to display the uploaded image immediately.
 # @callback(
@@ -156,7 +198,8 @@ def select_device(value, data):
 
 
 @callback(
-    [Output("elapsed-time-classify", "children"),
+    [Output("output-image-upload", "children", allow_duplicate=True),
+     Output("elapsed-time-classify", "children"),
      Input("classify-button", "n_clicks"),
      State("upload-image", "contents"),
      State("global-store", "data"),],
@@ -180,11 +223,11 @@ def update_classification(n_clicks, contents, data):
         return f"Error during classification: {str(e)}", ""
     end_time = time.time()
     elapsed_time = end_time - start_time
-    
-    return [html.Div([html.H5("Predicted Class: "), html.P(f"{class_label}"), html.H5("Elapsed time"), html.P(f"{elapsed_time:.2f} seconds"), html.Hr()])]
+    return html.Img(src=contents), html.Div([html.H5("Predicted Class: "), html.P(f"{class_label}"), html.H5("Elapsed time"), html.P(f"{elapsed_time:.2f} seconds"), html.Hr()])
 
 # Callback for benchmarking
 @callback([
+    Output("output-image-upload", "children", allow_duplicate=True),
     Output("benchmark-result-classify", "children"),
     Input("benchmark-button-classify", "n_clicks"),
     State("upload-image", "contents"),
@@ -193,7 +236,7 @@ def update_classification(n_clicks, contents, data):
 )
 def update_benchmark(n_clicks, contents, data):
     if n_clicks == 0 or contents is None:
-        return ""
+        return [""]
     
     # core = ov.Core()
     # available_devices = core.available_devices
@@ -203,7 +246,10 @@ def update_benchmark(n_clicks, contents, data):
     #     return error_message, ""
     
     device = data["device"].strip()
+    if device == 'iGPU':
+        device = 'GPU'
     # Run benchmark for latency
+    logging.info(device)
     result_latency = run_benchmark_app(device=device, hint="latency")
     latency_out = "N/A"
     for line in result_latency.split("\n"):
@@ -216,33 +262,54 @@ def update_benchmark(n_clicks, contents, data):
     result_throughput = run_benchmark_app(device=device, hint="throughput")
     throughput_out = "N/A"
     for line in result_throughput.split("\n"):
-        if "Average" in line:
+        if "Throughput" in line:
             parts = line.split()
             throughput_out = parts[-2] + " " + parts[-1]
             break
     
-    return [html.Div([html.H5("Latency:"), html.P(latency_out), html.H5("Throughput:"), html.P(throughput_out)])]
+    return html.Img(src=contents), html.Div([html.H5("Latency:"), html.P(latency_out), html.H5("Throughput:"), html.P(throughput_out)])
 
 ##### LAYOUT #####
 
-layout = html.Div([
+layout = dbc.Container([
     title_section,
     dcc.Markdown(children='''
                 This page allows you to classify an image using a locally optimized AI model powered by OpenVINO. 
                 Benchmarking helps evaluate performance across different types of processors.  
                 '''),
     dbc.Row([
-        dbc.Col(upload_img, width=6),
-        dbc.Col([device_selection, tool_section], width=6)
+        dbc.Col([
+            dbc.Row([upload_img, img_display]),
+            dbc.Row(fadeIC)
+        ], width=6),
+        dbc.Col([
+            dbc.Row([device_selection]),
+            html.Br(),
+            dbc.Row(tool_section),
+            html.Hr(),
+            dbc.Row([result_section, benchmark_section]),
+            dbc.Row(benchmark_button)
+        ], width=6),
     ]),
+    # dbc.Row([
+    #     dbc.Col(upload_img, width=6),
+    #     dbc.Col([device_selection, html.Br(), tool_section], width=6)
+    # ]),
+    # dbc.Row([
+    #     dbc.Col(img_display),
+    #     dbc.Col([html.Hr(), result_section, benchmark_section]),
+    # ]),
+    # dbc.Row([
+    #     dbc.Col(fadeIC),
+    #     dbc.Col(benchmark_button), 
+    #     ]),
+    html.Hr(),
+    html.H4("Benchmarking results across different devices"),
+    html.Br(),
     dbc.Row([
-        dbc.Col(img_display),
-        dbc.Col([html.Hr(), result_section, benchmark_section]),
-       
-    ]),
-    dbc.Row([ 
-        dbc.Col(fadeIC),
-         ]),
+                dbc.Col(fig_benchmark_fps, width=6),
+                dbc.Col(fig_benchmark_inference, width=6)
+            ]),
 ])
 
 

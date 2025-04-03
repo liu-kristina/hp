@@ -8,8 +8,17 @@ import psutil
 import GPUtil
 import platform
 import plotly.graph_objects as go
+from dotenv import load_dotenv
+import logging
 
 warnings.simplefilter("ignore", DeprecationWarning)
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO)
+
+load_dotenv('.env')
+computer_name = os.getenv("COMPUTER_NAME")
+logging.info('Working on the %s laptop', computer_name)
 
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
@@ -24,6 +33,35 @@ SIDEBAR_STYLE = {
     #"border-right": "2px solid #17a2b8" # accent color,
     "z-index": 1000, 
 }
+
+if computer_name == "HP ZBook Power G11":
+    device_specifications = {
+        'cpu': 'Intel(R) Core(TM) Ultra 9 185H' ,
+        'npu': 'Intel(R) AI Boost',
+        'gpu': 'NVIDIA RTX 3000 Ada (8 GB)',
+        'ram': '64 GB DDR5 RAM'
+    }
+elif computer_name == "HP ZBook Firefly G11":
+    device_specifications = {
+        'cpu': 'Intel(R) Core(TM) Ultra 7 165H' ,
+        'npu': 'Intel(R) AI Boost',
+        'gpu': 'NVIDIA RTX A500 (4 GB)',
+        'ram': '32 GB DDR5 RAM'
+    }
+else:
+    cpu = platform.processor()
+    svmem = psutil.virtual_memory()
+    gpus = GPUtil.getGPUs()
+    if gpus:
+        gpu = gpus[0].name
+    else:
+        gpu = 'n/a'
+    device_specifications = {
+        'cpu': cpu,
+        'npu': 'n/a',
+        'gpu': gpu,
+        'ram': f"{svmem.total / (1024**3):.2f} GB"
+    }
 
 
 # the styles for the main content position it to the right of the sidebar and
@@ -125,55 +163,54 @@ SIDEBAR_STYLE = {
 cpu = platform.processor()
 cpu_cores = psutil.cpu_count(logical=False)
 info_card = html.Div([
-    dbc.Row(
-        html.H4(" Selected device", className="fw-semibold"),
-        className="align-middle d-flex gap-4"
-        ),
-        dbc.Row([
-                html.P([
-                    "Device ", html.Br(),
-                    f"CPU: {cpu} ({cpu_cores} Cores) ", html.Br(),
-                    "Task picked"
-                    ],
-                    className="mt-0 text-muted"),
-            ],
-            class_name="g-0 mb-0 mt-0",
-        )
+    dbc.Row([html.H5(" Selected device", className="fw-semibold"),]),
+    dbc.Row([
+        html.P([computer_name]),
+        html.P([
+            f'CPU: {device_specifications['cpu']}\n', html.Br(),
+            f'NPU: {device_specifications['npu']}\n', html.Br(),
+            f'GPU: {device_specifications['gpu']}\n', html.Br(),
+            f'RAM: {device_specifications['ram']}\n',
+        ],
+            style={'font-size': '14px'})
+    ],
+    className="mt-0 text-muted mb-0 pt-0 pb-0"),
 ])
+
 
 
 cpu_util = html.Div(
     [
-        html.H5("CPU usage:"),
-        html.P(id='cpu-usage_side', className="fw-semibold"),
-        html.H5("GPU usage:"),
-        html.P(id='gpu-usage_side', className="fw-semibold"),
-        html.H5("NPU usage:"),
-        html.P("???", className="fw-semibold"),
-    ]
+        dbc.Row([
+            html.B('Device usage:')
+        ]),
+        dbc.Row([
+            dbc.Col([
+                html.Span([html.B("CPU:"), html.P(id='cpu-usage_side', className="fw-semibold"),]),
+            ]),
+            dbc.Col([
+                html.Span([html.B("GPU:"), html.P(id='gpu-usage_side', className="fw-semibold")]),
+            ])
+        ]),
+    ],
 )
 
-task_runtime = html.Div(
-    [
-        html.H5("Task runtime"),
-        html.P("??s"),
-    ]
-)
 
 @callback(
         Output("cpu-usage_side", "children"),
-        Input('interval-component', "n_intervals")
+        Input('global-interval', "n_intervals")
 )
 def get_cpu_freq(n_intervals):
     # cpu_load = psutil.cpu_percent(interval=None)
-    cpu_load = [(x/psutil.cpu_count()) * 100 for x in psutil.getloadavg()][1]
+    cpu_load = psutil.cpu_percent()
+    # cpu_load = [(x/psutil.cpu_count()) * 100 for x in psutil.getloadavg()][1]
     # x_used = psutil.cpu_percent()
     # x_unused = 100 - x_used
     return f"{cpu_load:.2f}%"
 
 @callback(
         Output("gpu-usage_side", "children"),
-        Input('interval-component', "n_intervals")
+        Input('global-interval', "n_intervals")
 )
 def get_gpu_freq(n_intervals):
     GPUs = GPUtil.getGPUs()
@@ -183,7 +220,7 @@ def get_gpu_freq(n_intervals):
 
 
 def create_sidebar(assets):
-    sidebar = html.Div(
+    sidebar = dbc.Container(
         [   
             html.Img(
             src='assets/0_HP_logo.png', 
@@ -191,26 +228,26 @@ def create_sidebar(assets):
             style={'width': '80px', 
                    'height': 'auto', 
                    'margin-right': '10px'},
-        ),
+            ),
             # html.H2("Sidebar", className="display-4"),
             html.Hr(),
-            html.P("Content", className="lead fw-semibold"
-            ),
+            # html.P("Content", className="lead fw-semibold"),
             dbc.Nav(
-                [dbc.NavLink(f"{page['name']}", href=f"{page['path']}", active="exact") for page in dash.page_registry.values()],
+                [dbc.NavLink(
+                    f"{page['name']}", 
+                    href=f"{page['path']}", 
+                    active="exact") for page in dash.page_registry.values()
+                    ],
                 vertical=True,
                 pills=True,
+                class_name='px-2 mt-0 mb-0'
             ),
             html.Hr(),
             cpu_util,
-            dcc.Interval(id='interval-component',
-            interval=1*1000, # in milliseconds
-            n_intervals=0),
-            html.Hr(),
-            task_runtime,
             html.Hr(),
             info_card
         ],
         style=SIDEBAR_STYLE,
+        class_name='container-fluid'
     )
     return sidebar

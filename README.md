@@ -58,8 +58,10 @@ Local Large Language Model (LLM) with RAG:
 Runs entirely on-device to preserve privacy, reduce latency, and support offline use. Here it is important to choose the correct model. 
 RAM/VRAM and Disk Space Considerations: Tiny models run on consumer GPUs, bigger models start asking for powerful GPUs or, you know, datacenters.
 
-RAG means retrieval augmented generation. The LLM "retrieves" information from PDFs to ensure accuracy. It has been given PDF documents about HP products, so feel free to ask questions about them! You can ask the chatbot powered by Mistral or Gemma general questions about NPUs and GPUs as well.
+RAG means retrieval augmented generation. The LLM "retrieves" information from PDFs to ensure accuracy. It has been given PDF documents about HP products, so feel free to ask questions about them! You can ask the chatbot powered by Mistral general questions about NPUs and GPUs as well.
 Example prompts:
+What is an NPU?
+What are the specifications for Zbook Power?
 
 Image Classification:
 Benchmarks Intel's integrated CPU, GPU, and NPU. 
@@ -83,8 +85,8 @@ The benchmarking for Intel's integrated CPU, GPU and NPU is again using OpenVino
 Resource Monitoring:
 Displays real-time system usage, visualizing how workloads are distributed
 
-1. Device utilisation of GPU & CPU shows usage in the past 60 seconds.
-2. Memory utilisation of GPU & CPU shows usage in the past 60 seconds.
+1. Device utilisation of GPU & CPU shows usage in the past 3 minutes.
+2. Memory utilisation of GPU & CPU shows usage in the past 3 minutes.
 
 3. Throughput benchmark results in fps. Throughput measures how many tasks can be done per second. It clearly trends towards CPU having the lowest throughput, then the NPU, then the integrated GPU and the dedicated GPU.
 

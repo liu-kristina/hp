@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -9,15 +9,15 @@ def get_layout(title: str, suptitle: str, x_label: str, y_label: str, ticksuffix
     
     if purpose == "app":
         template = 'plotly_dark'
-        tickfont_size = 12
-        title_font_size = 14
-        font_size = 20
+        tickfont_size = 24
+        title_font_size = 28
+        font_size = 36
         zoomable = False
     else:
         template = 'plotly_white'
-        tickfont_size = 14
-        title_font_size = 16
-        font_size = 24
+        tickfont_size = 24
+        title_font_size = 28
+        font_size = 36
         zoomable = True
     
     return go.Layout(
@@ -32,24 +32,28 @@ def get_layout(title: str, suptitle: str, x_label: str, y_label: str, ticksuffix
             legend={
             "title": "<b>Device</b>"},
             dragmode="pan",
-            template=template
+            template=template,
+            font_size=24
             # paper_bgcolor="lightgrey",
         )
 
 
 def create_figure(df, var: str, title: str, suptitle: str, x_label: str, 
-                  y_label: str, ticksuffix: str = "", theme="plotly_white", purpose: str = 'app'):
+                  y_label: str, ticksuffix: str = "", theme="plotly_white", purpose: str = 'presentation'):
 
     layout = get_layout(title, suptitle, x_label, y_label, ticksuffix, theme, purpose)
     if var == 'fps':
         df_plot = df[df['variable'] == var].sort_values(by='value')
     else:
         df_plot = df[df['variable'] == var].sort_values(by='value', ascending=False)
+    
+    bar_text = df_plot['relative_change'].apply(lambda x: str(round(x, 2)) + '%').values
+    bar_text = ["" if text == "0.0%" else text for text in bar_text]
     fig = px.bar(df_plot, 
-                 x='index', y='value', color='index', title="resnet50", text='relative_change',
+                 x='index', y='value', color='index', title="resnet50", text=bar_text,
                  template=theme,
                  color_discrete_sequence=px.colors.qualitative.Set1)
-    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False, texttemplate='%{text:.2f}%')
+    fig.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False, texttemplate='%{text}')
 
     fig.update_layout(layout)
     
@@ -57,7 +61,7 @@ def create_figure(df, var: str, title: str, suptitle: str, x_label: str,
     return fig
 
 def get_benchmarkings() -> pd.DataFrame:
-    fname = Path('reports', "benchmarks", 'detection_benchmarks_resnet_50.csv')
+    fname = Path('reports', "benchmarks", 'classification_benchmarks_resnet50.csv')
     df_results = pd.read_csv(fname, index_col=0)
 
     df_results_long = df_results.T.reset_index().melt(id_vars=['index'])
@@ -72,18 +76,18 @@ def get_benchmarkings() -> pd.DataFrame:
 if __name__ == "__main__":
     
     df = get_benchmarkings()
-    title = "Benchmark results" 
-    suptitle = 'Latency Time for Classification Across Different Devices using ResNet-50'
+    title = "Inference Time" 
+    suptitle = 'Image Classification Using ResNet-50'
 
-    fig_latency = create_figure(df, 'latency (ms)', title, suptitle, "Device", "Time", 'ms')
+    fig_latency = create_figure(df, 'inference_time', title, suptitle, "Device", "Time", 'ms')
     fig_latency.show()
 
-    fig_latency.write_image(Path('reports', 'figures', 'detection_benchmarks_resnet50_latency.pdf'), width=600, format='pdf')
-    fig_latency.write_html(Path('reports', 'figures', 'detection_benchmarks_resnet50_latency.html'))
+    fig_latency.write_image(Path('reports', 'figures', 'detection_benchmarks_resnet50_inference.pdf'), width=600, format='pdf')
+    fig_latency.write_html(Path('reports', 'figures', 'detection_benchmarks_resnet50_inference.html'))
 
-    title = "Benchmark results - Throughput" 
-    suptitle = 'Throughput Time for Classification Across Different Devices using ResNet-50'
-    fig_throughput = create_figure(df, 'throughput (ms)', title, suptitle, "Device", "Time", 'ms')
+    title = "Frames per second" 
+    suptitle = 'Image Classification Using ResNet-50'
+    fig_throughput = create_figure(df, 'fps', title, suptitle, "Device", "Time", 'ms')
 
     fig_throughput.write_image(Path('reports', 'figures', 'detection_benchmarks_resnet50_throughput.pdf'), width=600, format='pdf')
     fig_throughput.write_html(Path('reports', 'figures', 'detection_benchmarks_resnet50_throughput.html'))

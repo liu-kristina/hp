@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -45,11 +46,13 @@ def create_figure(df, var: str, title: str, suptitle: str, x_label: str,
         df_plot = df[df['variable'] == var].sort_values(by='value')
     else:
         df_plot = df[df['variable'] == var].sort_values(by='value', ascending=False)
+    bar_text = df_plot['relative_change'].apply(lambda x: str(round(x, 2)) + '%').values
+    bar_text[0] = ''
     fig = px.bar(df_plot, 
-                 x='index', y='value', color='index', title="yolo12s", text='relative_change',
+                 x='index', y='value', color='index', title="yolo12s", text=bar_text,
                  template=theme,
                  color_discrete_sequence=px.colors.qualitative.Set1)
-    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False, texttemplate='%{text:.2f}%')
+    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False, texttemplate='%{text}')
 
     fig.update_layout(layout)
     

@@ -1,0 +1,3 @@
+,iGPU,CPU,NPU
+inference_time,9.78,86.41,12.22
+fps,406.7,69.31,326.16

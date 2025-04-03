@@ -70,6 +70,26 @@ def benchmark_ov_devices(device):
     logging.info(f"Benchmarking result for {device}:\n{benchmark_results}")
     return benchmark_results
 
+
+def benchmark_classification(device):
+    device = device.lower().strip()
+    model_path = Path("src", "utils", "image_classification", "resnet50_fp16.xml")
+
+    if device == "igpu":
+        device = "gpu"
+    benchmark_results = {}
+    res = subprocess.run(["benchmark_app", "-m", model_path, '-d', device.upper()], 
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True)
+    # parse output
+    logging.info(res.stdout)
+    parsed_out = parse_output(res.stdout)
+    benchmark_results["inference_time"] = parsed_out['latency']
+    benchmark_results["fps"] = parsed_out['fps']
+    logging.info(f"Benchmarking result for {device}:\n{benchmark_results}")
+    return benchmark_results
+
 # benchmark_model()
 if __name__ == "__main__":
 
@@ -77,23 +97,43 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         devices.add("GPU")
 
-    benchmarking_results = {}
+        benchmarking_results = {}
     for device in devices:
         
         if device == 'GPU':
-            logging.info("Starting benchmarking on GPU...")
-            res = benchmark_gpu()
+            continue
         else:
             logging.info(f"Starting benchmarking on {device} with OpenVino...")
-            res = benchmark_ov_devices(device)
+            res = benchmark_classification(device)
         benchmarking_results[device] = res
 
     df_results = pd.DataFrame(benchmarking_results)
-    df_results.to_csv(Path('reports', 'benchmarks', f'detection_benchmarks_{MODEL_NAME}.csv'))
+    df_results.to_csv(Path('reports', 'benchmarks', 'classification_benchmarks_resnet50.csv'))
 
-    df_results = pd.read_csv(Path('reports', 'benchmarks', f'detection_benchmarks_{MODEL_NAME}.csv'), index_col=0)
+    df_results = pd.read_csv(Path('reports', 'benchmarks', 'classification_benchmarks_resnet50.csv'), index_col=0)
     df_results = df_results.T.reset_index().melt(id_vars=['index'])
     # df_results = df_results.set_index(df_results.columns[0])
     fig = px.bar(df_results[df_results['variable'] == 'inference_time'].sort_values(by='value'), x='index', y='value', color='index', title=MODEL_NAME)
-    fig.write_html(Path('reports', 'figures', f'detection_benchmarks_{MODEL_NAME}.html'))
+    fig.write_html(Path('reports', 'figures', 'classification_benchmarks_resnet50.html'))
     fig.show()
+
+    # benchmarking_results = {}
+    # for device in devices:
+        
+    #     if device == 'GPU':
+    #         logging.info("Starting benchmarking on GPU...")
+    #         res = benchmark_gpu()
+    #     else:
+    #         logging.info(f"Starting benchmarking on {device} with OpenVino...")
+    #         res = benchmark_ov_devices(device)
+    #     benchmarking_results[device] = res
+
+    # df_results = pd.DataFrame(benchmarking_results)
+    # df_results.to_csv(Path('reports', 'benchmarks', f'detection_benchmarks_{MODEL_NAME}.csv'))
+
+    # df_results = pd.read_csv(Path('reports', 'benchmarks', f'detection_benchmarks_{MODEL_NAME}.csv'), index_col=0)
+    # df_results = df_results.T.reset_index().melt(id_vars=['index'])
+    # # df_results = df_results.set_index(df_results.columns[0])
+    # fig = px.bar(df_results[df_results['variable'] == 'inference_time'].sort_values(by='value'), x='index', y='value', color='index', title=MODEL_NAME)
+    # fig.write_html(Path('reports', 'figures', f'detection_benchmarks_{MODEL_NAME}.html'))
+    # fig.show()

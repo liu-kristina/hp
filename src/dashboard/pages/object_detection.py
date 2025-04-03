@@ -26,7 +26,7 @@ warnings.simplefilter("ignore", DeprecationWarning)
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO)
 
-dash.register_page(__name__, title="Object Detection", name="Object Detection", path='/object-detection')
+dash.register_page(__name__, title="Object Detection", name="Object Detection", path='/object-detection', order=3)
 
 upload_img = html.Div([
     dcc.Upload(id="upload-image", 
@@ -60,11 +60,14 @@ device_selection = dbc.Card(
     [
         dbc.CardHeader("Select device for task."),
         dbc.CardBody(
-            dcc.RadioItems([f" {x} " for x in get_devices()], " CPU ", id='device-selection'),
+            dbc.RadioItems([f" {x} " for x in get_devices()], " CPU ", id='device-selection', inline=True),
             ),
     ],
     className="w-50",
-    outline=False,
+    style={
+        "background-color": "#1b2631",
+    },
+    outline=True,
 )
 
 tool_section = html.Div([
@@ -177,7 +180,7 @@ def layout(**kwargs):
                 '''),
             dbc.Row([
                 dbc.Col(upload_img),
-                dbc.Col([device_selection, tool_section,]),
+                dbc.Col([device_selection, html.Br(), tool_section,]),
             ]),
             dbc.Row([
                 dbc.Col(img_display),

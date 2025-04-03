@@ -76,6 +76,11 @@ app.layout = html.Div([
     dash.page_container,
     dcc.Store(id="global-store", storage_type="local", data={}),
     sidebar,
+    dcc.Interval(
+            id="global-interval",
+            interval=1000,  # Change to update every X seconds
+            n_intervals=0
+        ),
     get_popover_chatbot()
 ], style=CONTENT_STYLE)
 

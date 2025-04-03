@@ -1,4 +1,8 @@
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv('.env')
 
 from dash import html, dcc, callback, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
@@ -9,7 +13,10 @@ from src.rag.rag_interface import init_rag
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='[ %(levelname)s ] %(message)s', level=logging.INFO)
 
-model = "gemma3:12b-it-q4_K_M"
+model = os.getenv('LLM_MODEL')
+if not model:
+    model = "gemma3:12b-it-q4_K_M"
+# model = "gemma3:12b-it-q4_K_M"
 # model = "llama3.2"
 # model = " mistral-small:22b"
 # model = "mistral"

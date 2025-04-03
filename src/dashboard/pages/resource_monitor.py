@@ -28,7 +28,7 @@ warnings.simplefilter("ignore", DeprecationWarning)
 #-------------------------------------
 # app = dash.get_app()
 
-dash.register_page(__name__, title="Resource Monitor", name="Resource Monitor", path='/resource-monitor')
+dash.register_page(__name__, title="Resource Monitor", name="Resource Monitor", path='/resource-monitor', order=4)
 
 # app.config.suppress_callback_exceptions = True
 
@@ -63,7 +63,7 @@ color_palette = px.colors.qualitative.Set1
 ##### Static plot comparing execution times on 3 types:
 
 df_benchmark = get_benchmarkings()
-title = "Frames per seconds" 
+title = "Frames per second" 
 suptitle = 'Performance Analysis for Object Detection Task Across Different Devices using YOLO12s'
 
 fig_fps = create_figure(df_benchmark, var="fps", title=title, suptitle=suptitle, 
@@ -134,39 +134,6 @@ fade_rm = html.Div(
 cpu = platform.processor()
 cpu_cores = psutil.cpu_count(logical=False)
 
-info_card = dbc.Card(
-    [
-        dbc.Row(
-            [
-                dbc.CardBody(
-                    html.Div([
-                    html.I(className="bi bi-info-circle card-title "),
-                    html.P(" General Info", className="card-title fw-semibold"),
-                    ],
-                    className="fs-4 align-middle d-flex gap-4"
-                    ),
-                    class_name="pb-0 ml-20"
-                )
-            ],
-            class_name="g-0 p-0 mb-0 align-items-center"
-        ),
-        #TO DO 
-        dbc.Row([
-            dbc.Col(html.P(""), className="col-md-2 p-0"),
-                dbc.Col(
-                        html.P([f"CPU: {cpu} ({cpu_cores} Cores) ", html.Br(),
-                                   "LLM picked ", html.Br(),
-                                   "Task picked"],
-                                   className="mt-0 text-muted"),
-                    class_name="col-md-8 d-flex"
-                )
-            ],
-            class_name="g-0 mb-0 mt-0",
-        )
-    ],
-    style={"width": "24rem"}
-)
-
 cpu_util = html.Div(
     [
         html.H5("Processor Utilisation"),
@@ -181,17 +148,6 @@ gpu_util = html.Div(
     ]
 )
 
-util = html.Div(
-    [
-        dcc.Interval(
-            id='interval-component_RM',
-            interval=1*1000, # in milliseconds
-            n_intervals=0
-        ),
-    ],
-    className="pt-4 pb-4"
-)
-
 ##### Callbacks 
 @callback(
     Output("fade-rm", "is_open"),
@@ -204,10 +160,12 @@ def toggle_collapse(n, is_open):
     return is_open
 
 @callback(Output('utilization_graph_RM', "figure"),
-          Input('interval-component_RM', "n_intervals"),
+          Input("global-interval", "n_intervals"),
           )
 def update_usage(n_intervals):
-    cpu_load = [(x/psutil.cpu_count()) * 100 for x in psutil.getloadavg()][1]
+    cpu_load = psutil.cpu_percent()
+
+    # cpu_load = [(x/psutil.cpu_count()) * 100 for x in psutil.getloadavg()][1]
     cpu_container.append(cpu_load)
     GPUs = GPUtil.getGPUs() # -->commented because I don't have that. MD
     # GPUs = 'placeholder' # and added this
@@ -233,7 +191,7 @@ def update_usage(n_intervals):
     fig = go.Figure(
         data=[cpu_line, gpu_line],
         layout=go.Layout(
-            yaxis={"range": [0.1, 100], "title": "Usage", "ticksuffix": "%"},
+            yaxis={"range": [0.1, 100], "title": "Usage", "ticksuffix": "%", 'fixedrange': True},
             xaxis={'range': [-60, 0], "title": "Seconds"},
             title={
             "text": f"{title}<br><sup style='font-weight: normal'>{suptitle}</sup>",
@@ -250,7 +208,7 @@ def update_usage(n_intervals):
     return fig
 
 @callback(Output('memory_graph_RM', "figure"),
-          Input('interval-component_RM', "n_intervals")
+          Input("global-interval", "n_intervals")
           )
 def update_ram(n_intervals):
 
@@ -275,8 +233,8 @@ def update_ram(n_intervals):
     fig = go.Figure(
         data=[cpu_line, gpu_line],
         layout=go.Layout(
-            yaxis={"range": [0.1, 100], "title": "Usage", "ticksuffix": "%"},
-            xaxis={"title": "Seconds"},
+            yaxis={"range": [0.1, 100], "title": "Usage", "ticksuffix": "%", 'fixedrange': True},
+            xaxis={'range': [-60, 0], "title": "Seconds"},
             title={
             "text": f"{title}<br><sup style='font-weight: normal'>{suptitle}</sup>",
             "font_size": 20,
@@ -285,6 +243,7 @@ def update_ram(n_intervals):
             "title": "<b>Device</b>"},
             dragmode="pan",
             template="plotly_dark",
+            uirevision="a",
             # plot_bgcolor="#060606", 
             # paper_bgcolor="#060606",
             colorscale_sequential=px.colors.qualitative.Set1,
@@ -323,7 +282,7 @@ def layout(**kwargs):
         create_title_section('Resource monitor', 'Displaying resource usage in real-time'),
         # html.H1(children='Resource monitor'),
         html.H4("Real-time monitoring of CPU and GPU"),
-        util,
+        html.Br(),
         dbc.Row([
             dbc.Col([dcc.Graph(id = 'utilization_graph_RM'),], width=6),
             dbc.Col([dcc.Graph(id="memory_graph_RM"),], width=6),
@@ -331,11 +290,11 @@ def layout(**kwargs):
         ####### DYNAMIC PLOT : Live memory usage
         # dcc.Store(id="memory_store_RM", data=[]),
         # html.H4('Real-time memory usage'),
-        dcc.Interval(
-            id="interval-component_RM",
-            interval=1000,  # Change to update every X seconds
-            n_intervals=0
-        ),
+        # dcc.Interval(
+        #     id="interval-component_RM",
+        #     interval=1000,  # Change to update every X seconds
+        #     n_intervals=0
+        # ),
         html.Br(),
         html.H4('Benchmarking results'), # apparently needs a title to work
         dcc.Markdown("""
@@ -362,6 +321,11 @@ def layout(**kwargs):
         *2. Not all benchmarking tools allow the usage for each device as of 04/2025. Therefore, two different benchmark
         tools needed to be used. However, the utilisation and resulting execution time is considered comparable.*
         """),
+        dcc.Interval(
+            id="test-interval",
+            interval=1000,  # Change to update every X seconds
+            n_intervals=0
+        ),
         # get_popover_chatbot(),
     ])
     return page

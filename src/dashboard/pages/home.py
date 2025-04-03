@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
 
 
-dash.register_page(__name__, path='/', title="Home", name="Home", external_stylesheets=[dbc.themes.CYBORG])
+dash.register_page(__name__, path='/', title="Home", name="Home", external_stylesheets=[dbc.themes.CYBORG], order=0)
 
 img_src = Path("pages", "assets")
 
