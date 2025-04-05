@@ -1,6 +1,7 @@
-### Project: Local AI on mobile workstations using CPU, GPU and NPU capabilities”
+# Project: Local AI on mobile workstations using CPU, GPU and NPU capabilities”
 ==============================
-
+## Video:
+Link to video of app [https://www.youtube.com/watch?v=_qHEZ1RhQ9c].
 ## Setup
 - Install uv (https://docs.astral.sh/uv/getting-started/installation/)
     - For windows run in Admin Powershell: 
