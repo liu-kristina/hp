@@ -1,4 +1,4 @@
-# Project: Local AI (RAG Chatbot, Computer Vision tasks) on mobile workstations using CPU, GPU and NPU capabilities”
+# Local AI (RAG Chatbot, Computer Vision tasks) on mobile workstations using CPU, GPU and NPU capabilities
 ==============================
 ## Video:
 Link to video of app [https://www.youtube.com/watch?v=_qHEZ1RhQ9c].
